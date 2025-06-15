@@ -97,7 +97,67 @@ class SVM:
         """
         score = np.dot(x, self.w) + self.b     # 计算决策函数值
         return np.where(score >= 0, 1, 0)      # 转换回{0, 1}标签格式
+class LinearClassifierMSE:
+    """线性分类器 - 均方误差损失"""
+    def __init__(self):
+        self.learning_rate = 0.01
+        self.reg_lambda = 0.01
+        self.max_iter = 1000
+        self.w = None
+        self.b = None
 
+    def train(self, data_train):
+        X = data_train[:, :2]
+        y = data_train[:, 2]
+        m, n = X.shape
+        self.w = np.zeros(n)
+        self.b = 0
+
+        for _ in range(self.max_iter):
+            y_pred = np.dot(X, self.w) + self.b
+            error = y_pred - y
+            dw = (2 * self.reg_lambda * self.w) + (2 / m) * np.dot(X.T, error)
+            db = (2 / m) * np.sum(error)
+            self.w -= self.learning_rate * dw
+            self.b -= self.learning_rate * db
+
+    def predict(self, X):
+        y_pred = np.dot(X, self.w) + self.b
+        return (y_pred >= 0.5).astype(int)
+
+class LogisticRegressionCE:
+    """逻辑回归 - 交叉熵损失"""
+    def __init__(self):
+        self.learning_rate = 0.01
+        self.reg_lambda = 0.01
+        self.max_iter = 1000
+        self.w = None
+        self.b = None
+
+    def sigmoid(self, x):
+        return 1 / (1 + np.exp(-x))
+
+    def train(self, data_train):
+        X = data_train[:, :2]
+        y = data_train[:, 2]
+        m, n = X.shape
+        self.w = np.zeros(n)
+        self.b = 0
+
+        for _ in range(self.max_iter):
+            linear = np.dot(X, self.w) + self.b
+            y_pred = self.sigmoid(linear)
+            error = y_pred - y
+            dw = (2 * self.reg_lambda * self.w) + (np.dot(X.T, error) / m)
+            db = np.sum(error) / m
+            self.w -= self.learning_rate * dw
+            self.b -= self.learning_rate * db
+
+    def predict(self, X):
+        y_pred = self.sigmoid(np.dot(X, self.w) + self.b)
+        return (y_pred >= 0.5).astype(int)
+        
+#主程序增加模型对比
 if __name__ == '__main__':
     # 数据加载部分以及数据路径配置
     base_dir = os.path.dirname(os.path.abspath(__file__))             # 获取当前脚本的绝对路径
@@ -108,25 +168,40 @@ if __name__ == '__main__':
     data_train = load_data(train_file)
     # 加载测试数据
     data_test = load_data(test_file)
-
-    # 模型训练
-    svm = SVM()            # 初始化SVM模型
-    svm.train(data_train)  # 训练模型寻找最优超平面
-
-    # 训练集评估
-    x_train = data_train[:, :2]  # 训练特征
-    t_train = data_train[:, 2]   # 训练标签
-    t_train_pred = svm.predict(x_train)  # 预测训练集标签
-
-    # 测试集评估
-    x_test = data_test[:, :2]    # 测试特征
-    t_test = data_test[:, 2]     # 测试标签
-    t_test_pred = svm.predict(x_test)  # 预测测试集标签
-
-    # 计算并打印准确率
-    acc_train = eval_acc(t_train, t_train_pred)  # 训练集准确率
-    acc_test = eval_acc(t_test, t_test_pred)     # 测试集准确率
     
-    print("train accuracy: {:.1f}%".format(acc_train * 100))  # 输出训练集准确率
-    print("test accuracy: {:.1f}%".format(acc_test * 100))  # 输出测试集准确率
+     # 训练集和测试集分离
+    x_train = data_train[:, :2]
+    t_train = data_train[:, 2]
+    x_test = data_test[:, :2]
+    t_test = data_test[:, 2]
+
+    # 1. 线性回归分类器（均方误差）
+    linear_clf = LinearClassifierMSE()
+    linear_clf.train(data_train)
+    linear_train_pred = linear_clf.predict(x_train)
+    linear_test_pred = linear_clf.predict(x_test)
+    acc_train_linear = eval_acc(t_train, linear_train_pred)
+    acc_test_linear = eval_acc(t_test, linear_test_pred)
+    print("Linear (MSE) train accuracy: {:.1f}%"。format(acc_train_linear * 100))
+    print("Linear (MSE) test accuracy: {:.1f}%"。format(acc_test_linear * 100))
+
+    # 2. 逻辑回归（交叉熵）
+    logreg = LogisticRegressionCE()
+    logreg.train(data_train)
+    logreg_train_pred = logreg.predict(x_train)
+    logreg_test_pred = logreg.predict(x_test)
+    acc_train_logreg = eval_acc(t_train, logreg_train_pred)
+    acc_test_logreg = eval_acc(t_test, logreg_test_pred)
+    print("Logistic Regression train accuracy: {:.1f}%"。format(acc_train_logreg * 100))
+    print("Logistic Regression test accuracy: {:.1f}%"。format(acc_test_logreg * 100))
+
+    # 3. SVM（Hinge Loss）
+    svm = SVM()
+    svm.train(data_train)
+    t_train_pred = svm.predict(x_train)
+    t_test_pred = svm.predict(x_test)
+    acc_train = eval_acc(t_train, t_train_pred)
+    acc_test = eval_acc(t_test, t_test_pred)
+    print("SVM train accuracy: {:.1f}%"。format(acc_train * 100))
+    print("SVM test accuracy: {:.1f}%"。format(acc_test * 100))
 
