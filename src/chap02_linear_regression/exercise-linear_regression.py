@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 import numpy as np # 导入NumPy库。NumPy（Numerical Python）是 Python 中最基础、最强大的科学计算库之一
-import matplotlib.pyplot as plt
+import os
 
 import matplotlib.pyplot as plt # 导入Matplotlib的pyplot模块并命名为plt
 # 用于创建各种静态、交互式和动画可视化图表
@@ -15,6 +15,8 @@ def load_data(filename):
         tuple: 包含特征和标签的numpy数组 (xs, ys)
     """
     xys = []# 用于存储每行的数据，每行数据是一个列表
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f"数据文件 {filename} 不存在，请确认路径。")
     with open(filename, "r") as f:  # 以只读模式打开文件进行读取
         for line in f: # 遍历文件的每一行
             # 将每行内容按空格分割并转换为浮点数
